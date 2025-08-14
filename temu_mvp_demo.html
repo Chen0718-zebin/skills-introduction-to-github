@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Temu API 对接演示（MVP） - WEOTOO</title>
+  <style>
+    :root { --bg:#0b1020; --card:#111631; --muted:#7f8ab0; --accent:#6ea8fe; --ok:#31d0aa; --warn:#ffb020; --bad:#f47174; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Helvetica Neue", Arial, "Noto Sans", "Microsoft YaHei", sans-serif; background:linear-gradient(180deg,#0a0f1e,#0e1430); color:#e9eeff; }
+    header { padding:16px 20px; display:flex; gap:12px; align-items:center; border-bottom:1px solid #1f2750; position:sticky; top:0; backdrop-filter: blur(8px); background: rgba(10,15,30,.7); z-index:5;}
+    header h1 { font-size:18px; margin:0; letter-spacing:.5px; }
+    .tag { font-size:12px; color:#cbd5ff; background:#1a2146; padding:4px 8px; border-radius:999px; border:1px solid #293174; }
+    .wrap { padding:20px; max-width:1100px; margin:0 auto; }
+    .card { background:linear-gradient(180deg,#12183b,#0d1130); border:1px solid #223067; border-radius:16px; padding:18px; box-shadow: 0 20px 60px rgba(5,10,30,.25) inset, 0 1px 0 rgba(255,255,255,.05); }
+    .grid { display:grid; gap:16px; grid-template-columns: repeat(12, 1fr); }
+    .col-12{grid-column: span 12;} .col-8{grid-column: span 8;} .col-6{grid-column: span 6;} .col-4{grid-column: span 4;} .col-3{grid-column: span 3;}
+    .nav { display:flex; gap:8px; flex-wrap: wrap; }
+    .nav button { background:#131a3c; color:#dbe3ff; border:1px solid #26306b; padding:10px 12px; border-radius:12px; cursor:pointer; }
+    .nav button.active{ outline:2px solid var(--accent); background:#172257; }
+    h2 { font-size:16px; margin:4px 0 12px; color:#e9eeff; }
+    h3 { font-size:14px; margin:8px 0; color:#cfe3ff;}
+    p, li { color:#c2cff5; }
+    .muted{ color:#95a2d9; }
+    label { font-size:13px; color:#cbd6ff; }
+    input, select, textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #334186; background:#0e1431; color:#e6edff; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border-bottom:1px solid #223067; padding:10px 8px; font-size:13px; color:#d7e1ff; }
+    th { text-align:left; color:#aebdf5; font-weight:600; }
+    .btn { border:1px solid #2a3b87; background:#14205a; color:#e1e8ff; padding:8px 12px; border-radius:10px; cursor:pointer; }
+    .btn.primary { background: linear-gradient(180deg,#396bff,#2951f2); border-color:#2f59f5; }
+    .btn.ghost { background: transparent; border-color:#2a3b87; }
+    .stat { padding:12px; border-radius:12px; background:#0e173b; border:1px solid #26377f; }
+    .pill { padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid #2a3b87; background:#121a42; }
+    .pill.ok{ border-color:#1e7a64; background:#112b26; color:#a9ffea;}
+    .pill.warn{ border-color:#8c6f1e; background:#271f0f; color:#ffe3a1;}
+    .pill.bad{ border-color:#7a1e2a; background:#2b1116; color:#ffb9c1;}
+    .hidden{ display:none; }
+    .foot { font-size:12px; color:#8ea0de; margin-top:14px; }
+    .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0f1738; border:1px solid #2a3b87; border-bottom-width:2px; padding:2px 6px; border-radius:6px; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .callout{ border-left:3px solid var(--accent); background:#0e1536; padding:10px 12px; border-radius:10px; }
+    .flex{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .right{ text-align:right;}
+    .log{ height:180px; overflow:auto; background:#0b122c; border:1px solid #253476; border-radius:12px; padding:10px; font-size:12px; }
+    .mask{ filter: blur(2px); }
+    .divider{ height:1px; background: linear-gradient(90deg, transparent, #23306a, transparent); margin:12px 0; }
+    .small{ font-size:12px;}
+    .hero{ font-size:20px; color:#eef1ff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>WEOTOO · Temu Open API 对接演示（MVP）</h1>
+    <span class="tag">仅用于审核演示 · 无真实订单数据</span>
+  </header>
+
+  <div class="wrap">
+    <div class="card col-12" id="loginCard">
+      <div class="grid">
+        <div class="col-6">
+          <h2>登录演示系统</h2>
+          <p class="muted">测试账号：<span class="kbd">demo_temu</span> · 密码：<span class="kbd">Demo@2025!</span></p>
+          <div class="grid">
+            <div class="col-6">
+              <label>用户名</label>
+              <input id="u" placeholder="demo_temu" />
+            </div>
+            <div class="col-6">
+              <label>密码</label>
+              <input id="p" type="password" placeholder="Demo@2025!" />
+            </div>
+            <div class="col-12">
+              <button class="btn primary" onclick="login()">登录</button>
+              <span id="loginMsg" class="small" style="margin-left:10px;"></span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="callout small">
+            <b>说明：</b>本系统用于 Temu API 审核演示，展示“授权 → 拉单 → 解密收件 → 发货回传 → 库存同步”的闭环流程。所有数据为示例或局部打码，未连接真实接口。
+          </div>
+        </div>
+        <div class="col-6">
+          <h2>已绑定店铺（示例）</h2>
+          <div class="grid">
+            <div class="col-12 stat">
+              <div class="flex" style="justify-content:space-between;">
+                <div>
+                  <div class="small muted">店铺编号</div>
+                  <div class="mono">6344182227643638</div>
+                  <div class="small">店铺名称：WEOTOO</div>
+                </div>
+                <span class="pill ok">正常</span>
+              </div>
+            </div>
+            <div class="col-12 stat">
+              <div class="flex" style="justify-content:space-between;">
+                <div>
+                  <div class="small muted">店铺编号</div>
+                  <div class="mono">6344182236749040</div>
+                  <div class="small">店铺名称：WEOTOO 直营</div>
+                </div>
+                <span class="pill ok">正常</span>
+              </div>
+            </div>
+            <div class="col-12 stat">
+              <div class="flex" style="justify-content:space-between;">
+                <div>
+                  <div class="small muted">店铺编号</div>
+                  <div class="mono">6344182252447579</div>
+                  <div class="small">店铺名称：WEOTOO 商店</div>
+                </div>
+                <span class="pill warn">待授权</span>
+              </div>
+            </div>
+          </div>
+          <div class="foot">注：店铺编号与名称为示例，用于说明“多店铺授权”场景。</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="app" class="hidden">
+      <div class="card">
+        <div class="nav">
+          <button id="tab-dashboard" class="active" onclick="nav('dashboard')">仪表盘（授权&状态）</button>
+          <button id="tab-orders" onclick="nav('orders')">订单</button>
+          <button id="tab-ship" onclick="nav('ship')">发货回传</button>
+          <button id="tab-stock" onclick="nav('stock')">库存同步</button>
+          <button id="tab-logs" onclick="nav('logs')">日志</button>
+          <span class="muted small"> · 账号：<span class="mono" id="loginUser"></span></span>
+        </div>
+      </div>
+
+      <!-- Dashboard -->
+      <section id="panel-dashboard" class="card" style="margin-top:12px;">
+        <div class="grid">
+          <div class="col-8">
+            <h2 class="hero">授权状态</h2>
+            <p class="muted">展示 OAuth 授权、Token 续期、最近同步时间等。</p>
+            <div class="grid">
+              <div class="col-6 stat">
+                <div class="small muted">Access Token</div>
+                <div id="accessState" class="mono">未授权</div>
+                <div class="small muted">过期时间：<span id="expTime">—</span></div>
+                <div style="margin-top:8px;">
+                  <button class="btn primary" onclick="simulateOAuth()">模拟授权/续期</button>
+                  <button class="btn ghost" onclick="revoke()">撤销授权</button>
+                </div>
+              </div>
+              <div class="col-6 stat">
+                <div class="small muted">最近同步</div>
+                <div class="mono" id="lastSync">—</div>
+                <div class="small muted">计划任务：每 10 分钟增量同步</div>
+                <div style="margin-top:8px;">
+                  <button class="btn" onclick="syncNow()">立即同步</button>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="divider"></div>
+                <h3>最小权限与合规</h3>
+                <ul class="small">
+                  <li>仅申请订单、发货、库存必要 scope。</li>
+                  <li>敏感字段（电话、地址）按授权后“解密接口”按需获取，并留存审计日志 ≥ 180 天。</li>
+                  <li>Token 采用加密存储与定期轮换。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div class="col-4">
+            <h2>快速截图指引</h2>
+            <ol class="small">
+              <li>此页：<b>仪表盘</b>（含授权与计划任务）</li>
+              <li>切到“订单”页：<b>列表+明细</b></li>
+              <li>切到“发货回传”页：<b>填单号并提交</b></li>
+              <li>切到“库存同步”页：<b>SKU 列表+同步按钮</b></li>
+            </ol>
+            <div class="foot">建议 4 张 PNG 上传到“应用功能截图”。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders -->
+      <section id="panel-orders" class="card hidden" style="margin-top:12px;">
+        <h2>订单列表（示例数据）</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>订单号</th><th>下单时间</th><th>状态</th><th>买家</th><th>省市</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="orderRows"></tbody>
+        </table>
+        <div class="foot">说明：实际场景为“列表 → 获取价格/明细 → 解密收件信息”。</div>
+      </section>
+
+      <!-- Ship -->
+      <section id="panel-ship" class="card hidden" style="margin-top:12px;">
+        <h2>发货回传（示例）</h2>
+        <div class="grid">
+          <div class="col-4">
+            <label>选择订单</label>
+            <select id="shipOrder"></select>
+          </div>
+          <div class="col-4">
+            <label>物流承运商</label>
+            <select id="carrier">
+              <option value="YunExpress">YunExpress</option>
+              <option value="4PX">4PX</option>
+              <option value="DHL">DHL</option>
+              <option value="UPS">UPS</option>
+            </select>
+          </div>
+          <div class="col-4">
+            <label>运单号</label>
+            <input id="tracking" placeholder="例如：YT1234567890123" />
+          </div>
+          <div class="col-12">
+            <button class="btn primary" onclick="ship()">模拟回传</button>
+          </div>
+        </div>
+        <div class="foot">说明：回传后将更新平台发货状态并写入日志。</div>
+      </section>
+
+      <!-- Stock -->
+      <section id="panel-stock" class="card hidden" style="margin-top:12px;">
+        <h2>库存同步（示例）</h2>
+        <table>
+          <thead>
+            <tr><th>SKU</th><th>商品名</th><th>在售库存</th><th>建议同步值</th><th>操作</th></tr>
+          </thead>
+          <tbody id="stockRows"></tbody>
+        </table>
+        <div class="right" style="margin-top:8px;">
+          <button class="btn" onclick="syncAll()">批量同步（模拟）</button>
+        </div>
+        <div class="foot">说明：实际部署为定时任务（5–15分钟）增量同步，并支持幂等。</div>
+      </section>
+
+      <!-- Logs -->
+      <section id="panel-logs" class="card hidden" style="margin-top:12px;">
+        <h2>集成日志（示例）</h2>
+        <div id="log" class="log mono"></div>
+        <div class="foot">仅演示形态，真实系统会将关键操作写入审计与错误追踪。</div>
+      </section>
+    </div>
+
+    <div class="foot small" style="margin-top:16px;">
+      ⓘ 演示用途：本页面仅展示对接流程与界面雏形，不包含真实数据与服务器端调用。© WEOTOO
+    </div>
+  </div>
+
+  <script>
+    const DEMO_USER = "demo_temu";
+    const DEMO_PASS = "Demo@2025!";
+    let tokenValidUntil = null;
+    const orders = [
+      {id:"TM2025-0001", time:"2025-07-30 10:11", status:"待发货", buyer:"L***", region:"广东·深圳", phone:"+86-138****8899", addr:"南山区××路××号"},
+      {id:"TM2025-0002", time:"2025-07-30 10:45", status:"已付款", buyer:"A***", region:"浙江·杭州", phone:"+86-137****1122", addr:"滨江区××街道××号"},
+      {id:"TM2025-0003", time:"2025-07-30 13:25", status:"待发货", buyer:"R***", region:"California·LA", phone:"+1-323***7788", addr:"Sunset Blvd ×××"}
+    ];
+    const stock = [
+      {sku:"JSAUX-FAN-01", name:"便携风扇 白", qty:120, suggest:100},
+      {sku:"JSAUX-FAN-02", name:"便携风扇 黑", qty:68, suggest:80},
+      {sku:"JSAUX-DOCK-01", name:"RGB Dock", qty:35, suggest:30}
+    ];
+
+    function qs(id){ return document.getElementById(id); }
+    function now(){ const d=new Date(); return d.toLocaleString(); }
+    function addLog(line){
+      const el = qs("log");
+      el.textContent += `[${now()}] ${line}\n`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function login(){
+      const u = qs("u").value.trim();
+      const p = qs("p").value;
+      const msg = qs("loginMsg");
+      if(u===DEMO_USER && p===DEMO_PASS){
+        msg.style.color = "#31d0aa";
+        msg.textContent = "登录成功";
+        qs("loginCard").classList.add("hidden");
+        qs("app").classList.remove("hidden");
+        qs("loginUser").textContent = DEMO_USER;
+        addLog("演示账号登录成功");
+        renderOrders();
+        renderStock();
+        nav('dashboard');
+      }else{
+        msg.style.color = "#f47174";
+        msg.textContent = "账号或密码错误（请用 demo_temu / Demo@2025!）";
+      }
+    }
+
+    function nav(name){
+      for(const id of ["dashboard","orders","ship","stock","logs"]){
+        qs("panel-"+id).classList.toggle("hidden", id!==name);
+        qs("tab-"+id).classList.toggle("active", id===name);
+      }
+      addLog("切换到页面："+name);
+    }
+
+    function simulateOAuth(){
+      const exp = new Date(Date.now() + 1000*60*60); // +1h
+      tokenValidUntil = exp;
+      qs("accessState").innerHTML = '<span class="pill ok">有效</span>';
+      qs("expTime").textContent = exp.toLocaleString();
+      addLog("模拟授权成功，access_token 已生效 1 小时");
+    }
+    function revoke(){
+      tokenValidUntil = null;
+      qs("accessState").textContent = "未授权";
+      qs("expTime").textContent = "—";
+      addLog("已撤销授权");
+    }
+    function syncNow(){
+      if(!tokenValidUntil){ addLog("同步失败：未授权"); return; }
+      qs("lastSync").textContent = now();
+      addLog("完成增量同步（订单/库存）");
+    }
+
+    function renderOrders(){
+      const tb = qs("orderRows"); tb.innerHTML = "";
+      qs("shipOrder").innerHTML = "";
+      for(const o of orders){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${o.id}</td>
+                        <td>${o.time}</td>
+                        <td>${o.status}</td>
+                        <td>${o.buyer}</td>
+                        <td>${o.region}</td>
+                        <td>
+                          <button class="btn small" onclick="decrypt('${o.id}')">获取收件信息（解密示例）</button>
+                        </td>`;
+        tb.appendChild(tr);
+        const opt = document.createElement("option");
+        opt.value = o.id; opt.textContent = `${o.id} / ${o.buyer}`;
+        qs("shipOrder").appendChild(opt);
+      }
+    }
+
+    function decrypt(orderId){
+      if(!tokenValidUntil){ addLog("解密失败：未授权"); return; }
+      const o = orders.find(x=>x.id===orderId);
+      alert(`【解密成功 - 仅示例】\n订单：${o.id}\n电话：${o.phone}\n地址：${o.addr}`);
+      addLog(`调用解密接口（示例）：order_id=${o.id}`);
+    }
+
+    function ship(){
+      if(!tokenValidUntil){ addLog("回传失败：未授权"); return; }
+      const orderId = qs("shipOrder").value;
+      const carrier = qs("carrier").value;
+      const track = qs("tracking").value.trim();
+      if(!track){ addLog("回传失败：请填写运单号"); return; }
+      addLog(`发货回传成功：order=${orderId} carrier=${carrier} tracking=${track}`);
+      alert("【模拟】已回传发货信息：\n订单："+orderId+"\n承运商："+carrier+"\n单号："+track);
+    }
+
+    function renderStock(){
+      const tb = qs("stockRows"); tb.innerHTML = "";
+      for(const s of stock){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td class="mono">${s.sku}</td>
+                        <td>${s.name}</td>
+                        <td>${s.qty}</td>
+                        <td><input value="${s.suggest}" style="width:120px"/></td>
+                        <td><button class="btn small" onclick="syncOne('${s.sku}')">同步</button></td>`;
+        tb.appendChild(tr);
+      }
+    }
+    function syncOne(sku){
+      if(!tokenValidUntil){ addLog("库存同步失败：未授权"); return; }
+      addLog("库存同步成功（示例）：sku="+sku);
+    }
+    function syncAll(){
+      if(!tokenValidUntil){ addLog("批量同步失败：未授权"); return; }
+      addLog("批量同步完成（示例）");
+      alert("【模拟】已完成批量库存同步");
+    }
+  </script>
+</body>
+</html>
